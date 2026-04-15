@@ -12,6 +12,11 @@ export type AgentModelConfig =
       primary?: string;
       /** Per-agent model fallbacks (provider/model). */
       fallbacks?: string[];
+      /**
+       * Number of additional retry attempts on the primary model before
+       * falling through to the fallback chain. 0 means no retries (default).
+       */
+      primaryRetries?: number;
     };
 
 export type AgentEmbeddedHarnessConfig = {

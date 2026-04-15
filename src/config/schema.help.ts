@@ -1140,6 +1140,8 @@ export const FIELD_HELP: Record<string, string> = {
   "agents.defaults.model.primary": "Primary model (provider/model).",
   "agents.defaults.model.fallbacks":
     "Ordered fallback models (provider/model). Used when the primary model fails.",
+  "agents.defaults.model.primaryRetries":
+    "Number of additional retry attempts on the primary model before falling through to fallbacks (default: 0, max: 5).",
   "agents.defaults.embeddedHarness":
     "Default embedded agent harness policy. Use runtime=auto for plugin harness selection, runtime=pi for built-in PI, or a registered harness id such as codex.",
   "agents.defaults.embeddedHarness.runtime":
