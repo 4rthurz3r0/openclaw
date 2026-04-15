@@ -31,6 +31,7 @@ export function logModelFallbackDecision(params: {
   decision:
     | "skip_candidate"
     | "probe_cooldown_candidate"
+    | "candidate_retry"
     | "candidate_failed"
     | "candidate_succeeded";
   runId?: string;
@@ -50,6 +51,8 @@ export function logModelFallbackDecision(params: {
   allowTransientCooldownProbe?: boolean;
   profileCount?: number;
   previousAttempts?: FallbackAttempt[];
+  retryAttempt?: number;
+  retryMax?: number;
 }): void {
   const nextText = params.nextCandidate
     ? `${sanitizeForLog(params.nextCandidate.provider)}/${sanitizeForLog(params.nextCandidate.model)}`
@@ -83,6 +86,8 @@ export function logModelFallbackDecision(params: {
     fallbackConfigured: params.fallbackConfigured,
     allowTransientCooldownProbe: params.allowTransientCooldownProbe,
     profileCount: params.profileCount,
+    retryAttempt: params.retryAttempt,
+    retryMax: params.retryMax,
     previousAttempts: params.previousAttempts?.map((attempt) => ({
       provider: attempt.provider,
       model: attempt.model,

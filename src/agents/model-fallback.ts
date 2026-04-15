@@ -660,6 +660,10 @@ export async function runWithModelFallback<T>(params: {
 
   const hasFallbackCandidates = candidates.length > 1;
 
+  const modelCfg = params.cfg?.agents?.defaults?.model;
+  const primaryRetries =
+    typeof modelCfg === "object" && modelCfg !== null ? (modelCfg.primaryRetries ?? 0) : 0;
+
   for (let i = 0; i < candidates.length; i += 1) {
     const candidate = candidates[i];
     const isPrimary = i === 0;
@@ -779,12 +783,51 @@ export async function runWithModelFallback<T>(params: {
       }
     }
 
-    const attemptRun = await runFallbackAttempt({
+    // For the primary candidate only, retry up to primaryRetries times on
+    // failure before falling through to the next candidate. Auth failures
+    // short-circuit retries because they won't resolve by retrying.
+    const maxAttempts = isPrimary && primaryRetries > 0 ? 1 + primaryRetries : 1;
+    let attemptRun = await runFallbackAttempt({
       run: params.run,
       ...candidate,
       attempts,
       options: runOptions,
     });
+    for (let r = 1; r < maxAttempts; r += 1) {
+      if ("success" in attemptRun) {
+        break;
+      }
+      const prevDescribed = describeFailoverError(
+        coerceToFailoverError(attemptRun.error, {
+          provider: candidate.provider,
+          model: candidate.model,
+        }) ?? attemptRun.error,
+      );
+      if (prevDescribed.reason === "auth" || prevDescribed.reason === "auth_permanent") {
+        break;
+      }
+      logModelFallbackDecision({
+        decision: "candidate_retry",
+        runId: params.runId,
+        requestedProvider: params.provider,
+        requestedModel: params.model,
+        candidate,
+        attempt: i + 1,
+        total: candidates.length,
+        reason: prevDescribed.reason,
+        isPrimary,
+        requestedModelMatched: requestedModel,
+        fallbackConfigured: hasFallbackCandidates,
+        retryAttempt: r,
+        retryMax: primaryRetries,
+      });
+      attemptRun = await runFallbackAttempt({
+        run: params.run,
+        ...candidate,
+        attempts,
+        options: runOptions,
+      });
+    }
     if ("success" in attemptRun) {
       if (i > 0 || attempts.length > 0 || attemptedDuringCooldown) {
         logModelFallbackDecision({
